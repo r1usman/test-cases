@@ -4,6 +4,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.webdriver.chrome.options import Options
+
+
 
 # --- Configuration ---
 BASE_URL = "https://the-wild-oasis-omega-one.vercel.app/"
@@ -23,7 +26,11 @@ class TestUpdateSettingsForm:
         to navigate to the settings page.
         """
         # 1. Initialize WebDriver and perform Login
-        self.driver = webdriver.Chrome()
+        options = Options()
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        self.driver = webdriver.Chrome(options=options)
         self.driver.implicitly_wait(10)
         print("\n--- Performing Login ---")
         self.driver.get(BASE_URL)
