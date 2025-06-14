@@ -4,6 +4,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+
 
 # --- Configuration ---
 # Path to your ChromeDriver
@@ -21,7 +23,13 @@ class TestLoginPage:
         """Setup method to initialize the WebDriver before each test."""
         # service = Service(CHROME_DRIVER_PATH) # Uncomment if you specified the path
         # self.driver = webdriver.Chrome(service=service)
-        self.driver = webdriver.Chrome() # Use this if chromedriver is in your PATH
+        options = Options()
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+
+        # Initialize Chrome WebDriver
+        self.driver = webdriver.Chrome(options=options)# Use this if chromedriver is in your PATH
         self.driver.get(URL)
         self.driver.implicitly_wait(10) # Implicit wait
 
