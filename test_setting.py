@@ -9,7 +9,7 @@ from selenium.webdriver.chrome.options import Options
 
 
 # --- Configuration ---
-BASE_URL = "https://the-wild-oasis-omega-one.vercel.app/"
+BASE_URL = "http://16.16.91.240:4000/"
 VALID_EMAIL = "usman@example.com"
 VALID_PASSWORD = "fakefake"
 
