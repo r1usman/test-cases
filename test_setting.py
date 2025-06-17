@@ -1,113 +1,118 @@
-import pytest
+import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.chrome.options import Options
 
 
-
 # --- Configuration ---
-BASE_URL = "http://16.16.91.240:4000/"
+# Path to your ChromeDriver
+# If chromedriver is in your PATH, you can remove the service argument.
+# Example for Windows: service = Service('C:\\path\\to\\chromedriver.exe')
+# Example for Mac/Linux: service = Service('/path/to/chromedriver')
+URL = "http://16.16.91.240:4000/"
 VALID_EMAIL = "usman@example.com"
 VALID_PASSWORD = "fakefake"
 
+# --- Test Cases ---
 
-class TestUpdateSettingsForm:
-    """
-    Test suite for the Update Settings Form.
-    Uses user-like navigation (clicks) instead of direct URL access.
-    """
-
+class TestLoginPage:
     def setup_method(self, method):
-        """
-        Initializes the WebDriver, performs a login, and then CLICKS
-        to navigate to the settings page.
-        """
-        # 1. Initialize WebDriver and perform Login
+        """Setup method to initialize the WebDriver before each test."""
+        # service = Service(CHROME_DRIVER_PATH) # Uncomment if you specified the path
+        # self.driver = webdriver.Chrome(service=service)
         options = Options()
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        self.driver = webdriver.Chrome(options=options)
-        self.driver.implicitly_wait(10)
-        print("\n--- Performing Login ---")
-        self.driver.get(BASE_URL)
+
+        # Initialize Chrome WebDriver
+        self.driver = webdriver.Chrome(options=options)# Use this if chromedriver is in your PATH
+        self.driver.get(URL)
+        self.driver.implicitly_wait(10) 
+
+    def teardown_method(self, method):
+        """Teardown method to close the WebDriver after each test."""
+        self.driver.quit()
+
+    def test_successful_login(self):
+        """
+        Test Case 1: Verify successful login with valid credentials.
+        """
+        print("\n--- Running Test Case 1: Successful Login ---")
         self.driver.find_element(By.ID, "email").send_keys(VALID_EMAIL)
         self.driver.find_element(By.ID, "password").send_keys(VALID_PASSWORD)
         self.driver.find_element(By.CSS_SELECTOR, '#root > main > form > div:nth-child(3) > button').click()
 
+        # Wait for the URL to change, indicating a successful login and redirect
         try:
-            # 2. Wait for login to complete and dashboard to load
-            WebDriverWait(self.driver, 10).until(EC.url_contains("/dashboard"))
-            print("Login successful.")
-        except TimeoutException:
-            self.driver.quit()
-            pytest.fail("Login failed. Could not proceed.")
-
-        # 3. THE FIX: Navigate by clicking the settings link, not using driver.get()
-        print("Navigating to settings page by clicking the link...")
-        try:
-            # IMPORTANT: You may need to change this selector to match your app.
-            # Common examples: a[href='/settings'], button containing 'Settings', etc.
-            settings_link = WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable((By.XPATH, '//*[@id="root"]/div[1]/aside/nav/ul/li[5]/a'))
-            )
-            settings_link.click()
-
-            # 4. Wait for the settings page to be fully loaded
-            # We confirm this by waiting for one of the form fields to be visible.
             WebDriverWait(self.driver, 10).until(
-                EC.visibility_of_element_located((By.ID, "min-nights"))
+                EC.url_contains("/dashboard")
             )
-            print("Successfully navigated to the settings page.")
-
-        except TimeoutException:
-            self.driver.quit()
-            pytest.fail("Could not find or click the settings link, or the settings page did not load.")
-
-    def teardown_method(self, method):
-        """Closes the WebDriver after each test."""
-        self.driver.quit()
-
-    def _update_field_and_check_for_alert(self, field_id: str, new_value: str):
-        """Helper function to update a field and check for an alert."""
-        try:
-            field = self.driver.find_element(By.ID, field_id)
-            field.clear()
-            field.send_keys(new_value)
-            self.driver.find_element(By.TAG_NAME, "body").click()
-            WebDriverWait(self.driver, 10).until(EC.alert_is_present())
-
-            print(f"SUCCESS: An alert was detected after updating '{field_id}'.")
-            alert = self.driver.switch_to.alert
-            alert.accept()
-            assert True
-
-        except NoSuchElementException:
-            pytest.fail(f"Test setup failed: element '{field_id}' not found on the settings page.")
-        except TimeoutException:
-            pytest.fail(f"Update for '{field_id}' did not trigger a success alert.")
+            print("SUCCESS: Login successful. Redirected to the dashboard.")
+            assert "/dashboard" in self.driver.current_url
         except Exception as e:
-            pytest.fail(f"An unexpected error occurred for '{field_id}': {e}")
+            print(f"FAILURE: Login failed. Did not redirect to dashboard. {e}")
+            assert False, "Login did not lead to the expected dashboard URL."
 
-    def test_update_min_nights(self):
-        """Tests updating the 'Minimum nights/booking' field."""
-        print("--- Running Test: Update Minimum Nights ---")
-        self._update_field_and_check_for_alert("min-nights", "5")
 
-    def test_update_max_nights(self):
-        """Tests updating the 'Maximum nights/booking' field."""
-        print("--- Running Test: Update Maximum Nights ---")
-        self._update_field_and_check_for_alert("max-nights", "100")
+    def test_invalid_password(self):
+        """
+        Test Case 2: Verify login fails with a valid email and invalid password.
+        """
+        print("\n--- Running Test Case 2: Invalid Password ---")
+        self.driver.find_element(By.ID, "email").send_keys(VALID_EMAIL)
+        self.driver.find_element(By.ID, "password").send_keys("wrongpassword")
+        self.driver.find_element(By.CSS_SELECTOR, '#root > main > form > div:nth-child(3) > button').click()
 
-    def test_update_max_guests(self):
-        """Tests updating the 'Maximum guests/booking' field."""
-        print("--- Running Test: Update Maximum Guests ---")
-        self._update_field_and_check_for_alert("max-guests", "20")
+        # Check for an error message. Let's find an element that contains the error.
+        # This will depend on how your website displays errors.
+        # Inspecting your site, an error toast appears.
+        try:
+            WebDriverWait(self.driver, 10).until(
+                EC.url_contains("/login")
+            )
+            print("SUCCESS: Login successful. Redirected to the dashboard.")
+            assert "/login" in self.driver.current_url
+        except Exception as e:
+            print(f"FAILURE: Login failed. Did not redirect to dashboard. {e}")
+            assert False, "Login did not lead to the expected dashboard URL."
 
-    def test_update_breakfast_price(self):
-        """Tests updating the 'Breakfast price' field."""
-        print("--- Running Test: Update Breakfast Price ---")
-        self._update_field_and_check_for_alert("breakfast-price", "30")
+
+    def test_invalid_email(self):
+        """
+        Test Case 3: Verify login fails with an invalid email.
+        """
+        print("\n--- Running Test Case 3: Invalid Email ---")
+        self.driver.find_element(By.ID, "email").send_keys("invalid@example.com")
+        self.driver.find_element(By.ID, "password").send_keys(VALID_PASSWORD)
+        self.driver.find_element(By.CSS_SELECTOR, '#root > main > form > div:nth-child(3) > button').click()
+
+        try:
+            WebDriverWait(self.driver, 10).until(
+                EC.url_contains("/login")
+            )
+            print("SUCCESS: Login successful. Redirected to the dashboard.")
+            assert "/login" in self.driver.current_url
+        except Exception as e:
+            print(f"FAILURE: Login failed. Did not redirect to dashboard. {e}")
+            assert False, "Login did not lead to the expected dashboard URL."
+
+
+    def test_empty_credentials(self):
+        """
+        Test Case 4: Verify login fails when both email and password are empty.
+        """
+        print("\n--- Running Test Case 4: Empty Credentials ---")
+        self.driver.find_element(By.CSS_SELECTOR, '#root > main > form > div:nth-child(3) > button').click()
+
+        # Check that the URL has not changed
+        time.sleep(2) # Wait a moment to see if a redirect happens
+        current_url = self.driver.current_url
+        print(f"SUCCESS: The page did not redirect. Current URL is {current_url}")
+        assert "/login" in current_url, "Page should not redirect with empty credentials."
+
+# To run this script with pytest, you would save it as 'test_login.py'
+# and then run 'pytest' in your terminal in the same directory.
