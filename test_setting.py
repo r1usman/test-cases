@@ -40,7 +40,7 @@ class TestUpdateSettingsForm:
 
         try:
             # 2. Wait for login to complete and dashboard to load
-            WebDriverWait(self.driver, 10).until(EC.url_contains("dashboard"))
+            WebDriverWait(self.driver, 10).until(EC.url_contains("/dashboard"))
             print("Login successful.")
         except TimeoutException:
             self.driver.quit()
